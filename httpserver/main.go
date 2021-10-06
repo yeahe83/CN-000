@@ -37,12 +37,12 @@ func handler(w http.ResponseWriter, r *http.Request) {
 	// 1.接收客户端 request，并将 request 中带的 header 写入 response header
 	for k, v := range r.Header {
 		fmt.Fprintf(w, "Header[%q] = %q\n", k, v)
-		w.Header().Add(k, strings.Join(v, ",")) // Nothing shown in Edge F12 ?
+		w.Header().Add(k, strings.Join(v, ",")) // F12 看不到
 	}
 
 	// 2.读取当前系统的环境变量中的 VERSION 配置，并写入 response header
 	fmt.Fprintf(w, "VERSION = %q\n", os.Getenv("VERSION"))
-	w.Header().Add("VERSION", "test") // Nothing shown in Edge F12 ?
+	w.Header().Add("VERSION", os.Getenv("VERSION"))
 
 	// 3.Server 端记录访问日志包括客户端 IP，HTTP 返回码，输出到 server 端的标准输出
 	fmt.Printf("IP = %q, Status = %q\n", r.Host, "200")
