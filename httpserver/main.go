@@ -1,32 +1,48 @@
-/*
-9.25课后作业
-内容：编写一个 HTTP 服务器，大家视个人不同情况决定完成到哪个环节，但尽量把1都做完
-
-1.接收客户端 request，并将 request 中带的 header 写入 response header
-2.读取当前系统的环境变量中的 VERSION 配置，并写入 response header
-3.Server 端记录访问日志包括客户端 IP，HTTP 返回码，输出到 server 端的标准输出
-4.当访问 localhost/healthz 时，应返回200
-提交链接🔗：https://jinshuju.net/f/PlZ3xg
-截止时间：10月7日晚23:59前
-*/
-
 package main
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"net/http"
 	"os"
+	"os/signal"
 	"strings"
+	"syscall"
 )
 
 func main() {
 	os.Setenv("VERSION", "1.0")
 
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	// define a server
+	srv := &http.Server{Addr: ":80"}
 	http.HandleFunc("/", handler)
 	http.HandleFunc("/healthz", healthz)
 
-	log.Fatal(http.ListenAndServe(":80", nil))
+	// run a server
+	go func(ctx context.Context) {
+		log.Println("server is running...")
+		err := srv.ListenAndServe()
+		if err != nil {
+			log.Printf("server run failed:%+v", err)
+		}
+		log.Println("server is stoppping...")
+	}(ctx)
+
+	done := make(chan os.Signal, 1)
+	signal.Notify(done, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT, os.Interrupt)
+	<-done // stop here until get signal above
+	cancel()
+
+	// stop server
+	err := srv.Shutdown(context.TODO())
+	if err != nil {
+		log.Printf("server shutdown failed:%+v", err)
+	}
+	log.Println("server is stopped.")
 }
 
 func handler(w http.ResponseWriter, r *http.Request) {
