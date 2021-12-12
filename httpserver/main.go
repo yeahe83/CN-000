@@ -4,15 +4,21 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"math/rand"
 	"net/http"
 	"os"
 	"os/signal"
 	"strings"
 	"syscall"
+	"time"
+
+	"github.com/prometheus/client_golang/prometheus/promhttp"
+	"github.com/yeahe83/CN-000/httpserver/metrics"
 )
 
 func main() {
 	os.Setenv("VERSION", "1.0")
+	metrics.Register()
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -21,6 +27,7 @@ func main() {
 	srv := &http.Server{Addr: ":80"}
 	http.HandleFunc("/", handler)
 	http.HandleFunc("/healthz", healthz)
+	http.Handle("/metrics", promhttp.Handler())
 
 	// run a server
 	go func(ctx context.Context) {
@@ -50,6 +57,14 @@ func handler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// 2.为 HTTPServer 项目添加延时 Metric
+	timer := metrics.NewTimer()
+	defer timer.ObserveTotal()
+
+	// 1.为 HTTPServer 添加 0-2 秒的随机延时
+	delay := randInt(10, 2000)
+	time.Sleep(time.Millisecond * time.Duration(delay))
+
 	// 1.接收客户端 request，并将 request 中带的 header 写入 response header
 	for k, v := range r.Header {
 		fmt.Fprintf(w, "Header[%q] = %q\n", k, v)
@@ -67,4 +82,9 @@ func handler(w http.ResponseWriter, r *http.Request) {
 func healthz(w http.ResponseWriter, r *http.Request) {
 	// 4.当访问 localhost/healthz 时，应返回200
 	fmt.Fprintf(w, "200 OK")
+}
+
+func randInt(min int, max int) int {
+	rand.Seed(time.Now().UTC().UnixNano())
+	return min + rand.Intn(max-min)
 }
