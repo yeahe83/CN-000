@@ -18,7 +18,7 @@ spec:
       terminationGracePeriodSeconds: 60
       containers:
       - name: httpserver
-        image: yeahe83/httpserver:1.03
+        image: yeahe83/httpserver:1.04
         resources:
           limits:
             memory: "128Mi"
@@ -65,3 +65,5 @@ spec:
   ports:
   - port: 80
     targetPort: 80
+    nodePort: 31080
+  type: NodePort
