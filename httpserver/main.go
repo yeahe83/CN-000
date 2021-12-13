@@ -17,7 +17,9 @@ import (
 )
 
 func main() {
-	os.Setenv("VERSION", "1.0")
+	// now FROM httpserver-config/version
+	// os.Setenv("VERSION", "1.0")
+
 	metrics.Register()
 
 	ctx, cancel := context.WithCancel(context.Background())
