@@ -9,10 +9,20 @@ spec:
     - httpsserver.cncamp.io
   http:
     - match:
-        - port: 443
+      - port: 443
       route:
         - destination:
             host: httpserver.httpserver.svc.cluster.local
+            port:
+              number: 80
+    - match:
+      - uri:
+          exact: /nginx
+      rewrite:
+        uri: "/"
+      route:
+        - destination:
+            host: nginx.simple.svc.cluster.local
             port:
               number: 80
 ---
@@ -33,3 +43,4 @@ spec:
       tls:
         mode: SIMPLE
         credentialName: cncamp-credential
+
