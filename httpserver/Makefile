@@ -1,4 +1,4 @@
-export tag=1.05
+export tag=1.06
 build:
 	echo "go build..."
 	GOOS=linux GOARCH=amd64 go build -o bin/httpserver main.go

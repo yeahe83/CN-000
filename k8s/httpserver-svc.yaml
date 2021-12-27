@@ -17,7 +17,7 @@ spec:
     spec:
       containers:
       - name: httpserver
-        image: yeahe83/httpserver:1.05
+        image: yeahe83/httpserver:1.06
         ports:
         - containerPort: 80
           name: http-metrics

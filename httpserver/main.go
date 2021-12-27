@@ -59,30 +59,48 @@ func handler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// 2.为 HTTPServer 项目添加延时 Metric
+	// 为 HTTPServer 项目添加延时 Metric
 	timer := metrics.NewTimer()
 	defer timer.ObserveTotal()
 
-	// 1.为 HTTPServer 添加 0-2 秒的随机延时
+	// 为 HTTPServer 添加 0-2 秒的随机延时
 	delay := randInt(10, 2000)
 	time.Sleep(time.Millisecond * time.Duration(delay))
 
-	// 1.接收客户端 request，并将 request 中带的 header 写入 response header
+	// 接收客户端 request，并将 request 中带的 header 写入 response header
 	for k, v := range r.Header {
 		fmt.Fprintf(w, "Header[%q] = %q\n", k, v)
 		w.Header().Add(k, strings.Join(v, ",")) // F12 看不到
 	}
 
-	// 2.读取当前系统的环境变量中的 VERSION 配置，并写入 response header
+	// 读取当前系统的环境变量中的 VERSION 配置，并写入 response header
 	fmt.Fprintf(w, "VERSION = %q\n", os.Getenv("VERSION"))
 	w.Header().Add("VERSION", os.Getenv("VERSION"))
 
-	// 3.Server 端记录访问日志包括客户端 IP，HTTP 返回码，输出到 server 端的标准输出
+	// Server 端记录访问日志包括客户端 IP，HTTP 返回码，输出到 server 端的标准输出
 	fmt.Printf("IP = %q, Status = %q\n", r.Host, "200")
+
+	// 转发header中的埋点信息到下级服务，以形成调用链
+	req, err := http.NewRequest("GET", "http://service2.tracing.svc.cluster.local", nil)
+	if err != nil {
+		log.Println(err)
+	}
+	lowerCaseHeader := make(http.Header)
+	for key, value := range r.Header {
+		lowerCaseHeader[strings.ToLower(key)] = value
+	}
+	req.Header = lowerCaseHeader
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		log.Println("get service2 fail.", err)
+	}
+	fmt.Fprintln(w, "==== resp from service2 ===")
+	resp.Write(w)
 }
 
 func healthz(w http.ResponseWriter, r *http.Request) {
-	// 4.当访问 localhost/healthz 时，应返回200
+	// 当访问 localhost/healthz 时，应返回200
 	fmt.Fprintf(w, "200 OK")
 }
 
@@ -90,3 +108,4 @@ func randInt(min int, max int) int {
 	rand.Seed(time.Now().UTC().UnixNano())
 	return min + rand.Intn(max-min)
 }
+
